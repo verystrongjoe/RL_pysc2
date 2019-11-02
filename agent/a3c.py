@@ -6,7 +6,6 @@ from pysc2.lib import actions, features
 import utils
 from agent.agent import Agent
 
-
 UPDATE_GLOBAL_INTERVAL = 5
 GAMMA = 0.99
 MAX_EPISODE = 20000
@@ -26,6 +25,6 @@ class A3CAgent(Agent):
         self.structured_dimensions = len(actions.FUNCTIONS)
         self.mode = exploration_mode
 
-    def reset(self)
+    def reset(self):
         self.epsilon = [0.05, 0.2]
 

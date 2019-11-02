@@ -9,7 +9,6 @@ import os
 from torch.optim import Adam
 import torch.multiprocessing as mp
 
-
 torch.set_default_tensor_type('torch.FloatTensor')
 torch.manual_seed(arglist.SEED)
 FLAGS = flags.FLAGS
@@ -59,6 +58,10 @@ def main(_):
             critic = CriticNet()
             memory = SequentialMemory(limit=arglist.DDPG.memory_limit)
             learner = DDPGAgent(actor, critic, memory)
+
+            preprocess = Preprocess()
+            game = MiniGame(map_name, learner, preprocess, nb_episodes=10000)
+            game.run_ddpg()
 
         elif FLAGS.baseline == 'ppo':
             from agent.ppo import PPOAgent
@@ -118,10 +121,6 @@ def main(_):
 
         else:
             raise NotImplementedError()
-
-        preprocess = Preprocess()
-        game = MiniGame(map_name, learner, preprocess, nb_episodes=10000)
-        game.run_ddpg()
 
         return 0
 

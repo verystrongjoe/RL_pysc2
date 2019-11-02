@@ -47,11 +47,12 @@ class MiniGameParallel(mp.Process):
         self.name = 'w%i'% name # todo
         self.g_ep, self.g_ep_r, self.res_queue = global_ep, global_ep_r, res_queue
         self.gnet, self.opt = gnet, opt     # todo: what is opt?
-        # self.env = sc2_env.SC2Env(map_name=self.map_name,
-        #                           step_mul=8,
-        #                           visualize=False,
-        #                           game_steps_per_episode=1000,
-        #                           agent_interface_format=[agent_format])
+        self._env = sc2_env.SC2Env(
+                                  map_name=self.map_name,
+                                  visualize=False,
+                                  step_mul=8,
+                                  game_steps_per_episode=1000,
+                                  agent_interface_format=[agent_format])
         print('starcraft 2 {} start..'.format(name))
 
 
@@ -98,7 +99,6 @@ class MiniGameParallel(mp.Process):
             x = obs[o].astype('float32')
             x = np.expand_dims(x, 0)
             obs_torch[o] = torch.from_numpy(x).to(arglist.DEVICE)
-
 
         # select with  unit id is impossible
         valid_actions[5] = 0.
@@ -148,14 +148,9 @@ class MiniGameParallel(mp.Process):
         return action
 
     def run(self):
-        self.env = sc2_env.SC2Env(map_name=self.map_name,
-                                  step_mul=8,
-                                  visualize=False,
-                                  game_steps_per_episode=1000,
-                                  agent_interface_format=[agent_format])
 
         while self.g_ep.value < self.nb_episodes:
-            s = self.env.reset()[0]
+            s = self._env.reset()[0]
 
             buffer_s, buffer_a, buffer_r = [],[],[]
             ep_r = 0.
@@ -163,11 +158,22 @@ class MiniGameParallel(mp.Process):
             for t in range(self.nb_max_steps):  # todo : 이값은 우찌 설정?
 
                 obs = self.preprocess.get_observation(s)
+
+                print(obs['available_actions'])
+
+                """
+                0 1 2 3 4 5 6 8
+                no op, move_camera,  select_point, select_rect,
+                selct_control_group, select_unit, selec_warp_gates>????
+                
+                12, 13 14?????
+                """
+
                 actions = self.select_action(obs, valid_actions=obs['available_actions'])
 
                 print('actions : {}'.format(actions))
 
-                state_new = self.env.step(actions=[actions])[0]
+                state_new = self._env.step(actions=[actions])[0]
                 actions = self.preprocess.postprocess_action(actions)
 
                 if s.last():
@@ -179,7 +185,7 @@ class MiniGameParallel(mp.Process):
                     state = deepcopy(state_new)
 
             self.res_queue.put(None)
-        self.env.close()
+        self._env.close()
 
 class MiniGame:
     def __init__(self, map_name, learner, preprocess, nb_episodes=50000):
